@@ -1,0 +1,46 @@
+# Intent Optimizer Configuration
+# ================================
+
+# Paths
+paths:
+  train_dir: "data/train"
+  validation_file: "data/validation/validation.csv"
+  test_file: "data/test/test.csv"
+  embeddings_cache: "data/embeddings_cache.parquet"
+  results_dir: "results"
+  changelog: "notes/changelog.md"
+
+# OpenAI Embedding Configuration
+embeddings:
+  model: "text-embedding-3-large"
+  dimensions: 3072  # can be reduced to 256/512/1024 for speed
+  batch_size: 100
+
+# Model Configuration (LogisticRegression)
+model:
+  solver: "lbfgs"
+  max_iter: 1000
+  C: 1.0
+  class_weight: "balanced"
+  multi_class: "multinomial"
+
+# K-Fold Configuration
+kfold:
+  k: 5
+  top_n_confused_pairs: 10
+
+# Guardrails
+guardrails:
+  max_remove_pct: 0.30          # max % of an intent's data removable in one call
+  max_iterations_per_session: 10 # agent stops after N optimization rounds
+  min_examples_per_intent: 10    # refuse removal if it would drop below this
+
+# Inventory
+inventory:
+  show_nearest_neighbor: true
+  show_cohesion: true
+  show_f1: true  # requires a prior eval run
+
+# Prediction
+predict:
+  top_k: 5  # number of intents to show in prediction output

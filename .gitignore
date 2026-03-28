@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Data (large files - track with git-lfs or exclude)
+data/embeddings_cache.parquet
+
+# Model artifacts
+results/current/model.pkl
+results/history/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+!.vscode/settings.json

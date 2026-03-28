@@ -1,0 +1,19 @@
+# Intent Optimizer - Requirements
+# ================================
+
+# Core ML
+scikit-learn>=1.4
+numpy>=1.26
+pandas>=2.1
+
+# Embeddings
+openai>=1.12
+
+# Data storage
+pyarrow>=15.0  # for parquet support
+
+# Config
+pyyaml>=6.0
+
+# Utilities
+tabulate>=0.9  # clean table output for agent readability
