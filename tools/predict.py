@@ -1,6 +1,11 @@
 """Predict intent for a single sentence using the trained model."""
 
 import argparse
+import sys
+from pathlib import Path
+
+# Ensure utils is importable when run from project root
+sys.path.insert(0, str(Path(__file__).parent))
 
 import numpy as np
 from tabulate import tabulate

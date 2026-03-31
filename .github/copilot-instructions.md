@@ -43,8 +43,9 @@ All tools are in the `tools/` directory. Run them with `python tools/<tool>.py <
 
 ### Action Tools
 - **`modify_train_data.py`** — Add or remove training examples
-  - `--action add|remove --intent X --examples '["text1","text2"]' --reason "explanation"`
-  - `--action remove --intent X --indices '[3,7,12]' --reason "explanation"`
+  - `--action add --intent X --examples '["text1","text2"]' --reason "explanation"`
+  - `--action remove --intent X --texts '["text1","text2"]' --reason "explanation"` (preferred — immune to index shifts)
+  - `--action remove --intent X --indices '[3,7,12]' --reason "explanation"` (fragile if indices shifted since last query)
   - Automatically computes embeddings for new examples
   - Automatically logs to changelog
   - Has guardrails: won't remove >30% of intent data or drop below 10 examples
@@ -66,6 +67,7 @@ All tools are in the `tools/` directory. Run them with `python tools/<tool>.py <
 6. **Think before acting** — when you see confused intent pairs, read the examples AND the descriptions before deciding on an action. Sometimes the descriptions need updating (flag this to the user), not the training data.
 7. **Stop after diminishing returns** — if F1 improvement is <0.5% between iterations, report results and stop.
 8. **When in doubt, ask the user** — especially for intent overlap that might require structural changes (merging/splitting intents).
+9. **When Azure auth code is added to `tools/utils.py`**, update the README.md setup section to reflect the actual authentication mechanism and remove the TODO comment.
 
 ## Changelog Format
 

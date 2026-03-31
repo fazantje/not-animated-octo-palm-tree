@@ -2,7 +2,11 @@
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+# Ensure utils is importable when run from project root
+sys.path.insert(0, str(Path(__file__).parent))
 
 import numpy as np
 import pandas as pd
@@ -11,18 +15,8 @@ from tabulate import tabulate
 from utils import (
     load_config, get_path, load_training_data, load_split_data,
     load_intent_description, compute_embeddings, load_embeddings_cache,
-    get_intent_names,
+    get_intent_names, cosine_similarity, compute_centroid,
 )
-
-
-def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
-    """Cosine similarity between two vectors."""
-    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10))
-
-
-def compute_centroid(embeddings: np.ndarray) -> np.ndarray:
-    """Compute centroid of a set of embeddings."""
-    return embeddings.mean(axis=0)
 
 
 def compute_cohesion(embeddings: np.ndarray) -> float:

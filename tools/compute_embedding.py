@@ -1,15 +1,16 @@
 """Compute embedding for a single sentence and optionally compare to an intent centroid."""
 
 import argparse
+import sys
+from pathlib import Path
+
+# Ensure utils is importable when run from project root
+sys.path.insert(0, str(Path(__file__).parent))
 
 import numpy as np
 from tabulate import tabulate
 
-from utils import load_config, load_training_data, compute_embeddings
-
-
-def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
-    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10))
+from utils import load_config, load_training_data, compute_embeddings, cosine_similarity, compute_centroid
 
 
 def compute_single_embedding(text: str, compare_intent: str = None):
@@ -32,7 +33,7 @@ def compute_single_embedding(text: str, compare_intent: str = None):
             return
 
         intent_embeddings = compute_embeddings(intent_texts, config)
-        centroid = intent_embeddings.mean(axis=0)
+        centroid = compute_centroid(intent_embeddings)
 
         sim_to_centroid = cosine_similarity(embedding, centroid)
         print(f"\n  Similarity to '{compare_intent}' centroid: {sim_to_centroid:.4f}")

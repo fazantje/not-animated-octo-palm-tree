@@ -37,7 +37,7 @@ Carefully read the misclassified examples and both intent descriptions. Identify
 
 ### Step 4: Act
 Based on your diagnosis, take action:
-- **Remove noisy examples**: `python tools/modify_train_data.py --action remove --intent A --indices '[...]' --reason "..."`
+- **Remove noisy examples**: `python tools/modify_train_data.py --action remove --intent A --texts '["exact text 1", "exact text 2"]' --reason "..."` (preferred over `--indices` as it is immune to index shifts)
 - **Add disambiguating examples**: Write new examples that are clearly intent A and not B, then add them: `python tools/modify_train_data.py --action add --intent A --examples '[...]' --reason "..."`
 - **Test hypotheses**: Before adding examples, you can test them: `python tools/predict.py --text "new example"` to see how the current model would classify them.
 

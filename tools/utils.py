@@ -1,6 +1,5 @@
 """Shared utilities for intent optimizer tools."""
 
-import os
 import yaml
 import pandas as pd
 import numpy as np
@@ -55,15 +54,14 @@ def compute_embeddings(texts: list[str], config: dict, cache_df: Optional[pd.Dat
     dimensions = emb_config["dimensions"]
     batch_size = emb_config["batch_size"]
 
-    # Check cache
-    cached_texts = set(cache_df["text"].values) if len(cache_df) > 0 else set()
+    # Check cache — use dict for O(1) lookup instead of scanning the DataFrame
     results = {}
+    if len(cache_df) > 0:
+        cache_lookup = dict(zip(cache_df["text"], cache_df["vector"]))
+        for text in texts:
+            if text in cache_lookup:
+                results[text] = np.array(cache_lookup[text])
 
-    # Retrieve cached embeddings
-    for text in texts:
-        if text in cached_texts:
-            row = cache_df[cache_df["text"] == text].iloc[0]
-            results[text] = np.array(row["vector"])
 
     # Compute missing embeddings
     missing = [t for t in texts if t not in results]
@@ -128,6 +126,16 @@ def load_intent_description(config: dict, intent_name: str) -> str:
     if desc_path.exists():
         return desc_path.read_text().strip()
     return "(no description found)"
+
+
+def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    """Cosine similarity between two vectors."""
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10))
+
+
+def compute_centroid(embeddings: np.ndarray) -> np.ndarray:
+    """Compute centroid of a set of embeddings."""
+    return embeddings.mean(axis=0)
 
 
 def load_trained_model():

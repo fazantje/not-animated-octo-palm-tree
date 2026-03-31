@@ -2,7 +2,12 @@
 
 import argparse
 import json
+import sys
 from datetime import datetime
+from pathlib import Path
+
+# Ensure utils is importable when run from project root
+sys.path.insert(0, str(Path(__file__).parent))
 
 import pandas as pd
 
@@ -12,7 +17,8 @@ from utils import (
 
 
 def modify_train_data(action: str, intent: str, examples: list[str] = None,
-                      indices: list[int] = None, reason: str = ""):
+                      indices: list[int] = None, texts: list[str] = None,
+                      reason: str = ""):
     config = load_config()
     guardrails = config["guardrails"]
 
@@ -34,6 +40,19 @@ def modify_train_data(action: str, intent: str, examples: list[str] = None,
         if not examples:
             print("Error: --examples required for add action.")
             return
+
+        # Check for duplicates against existing examples
+        existing_texts = set(df["text"].values)
+        duplicates = [ex for ex in examples if ex in existing_texts]
+        if duplicates:
+            print(f"WARNING: {len(duplicates)} duplicate(s) already exist in '{intent}':")
+            for dup in duplicates:
+                print(f"  - {dup}")
+            examples = [ex for ex in examples if ex not in existing_texts]
+            if not examples:
+                print("No new examples to add after removing duplicates.")
+                return
+            print(f"Continuing with {len(examples)} non-duplicate example(s).\n")
 
         # Compute embeddings to ensure they're cached
         print(f"Computing embeddings for {len(examples)} new examples...")
@@ -59,8 +78,26 @@ def modify_train_data(action: str, intent: str, examples: list[str] = None,
         append_changelog(config, entry)
 
     elif action == "remove":
+        # Resolve texts to indices if --texts was used
+        if texts and not indices:
+            indices = []
+            not_found = []
+            for text in texts:
+                matches = df.index[df["text"] == text].tolist()
+                if matches:
+                    indices.append(matches[0])
+                else:
+                    not_found.append(text)
+            if not_found:
+                print(f"WARNING: {len(not_found)} text(s) not found in '{intent}':")
+                for t in not_found:
+                    print(f"  - {t}")
+            if not indices:
+                print("No matching examples found to remove.")
+                return
+
         if not indices:
-            print("Error: --indices required for remove action.")
+            print("Error: --indices or --texts required for remove action.")
             return
 
         # Validate indices
@@ -119,11 +156,15 @@ if __name__ == "__main__":
                         help='JSON list of examples to add, e.g. \'["text1","text2"]\'')
     parser.add_argument("--indices", type=str, default=None,
                         help='JSON list of row indices to remove, e.g. \'[3,7,12]\'')
+    parser.add_argument("--texts", type=str, default=None,
+                        help='JSON list of exact texts to remove, e.g. \'["text1","text2"]\'. '
+                             'Preferred over --indices as it is not affected by index shifts.')
     parser.add_argument("--reason", type=str, default="(no reason given)",
                         help="Reason for the modification")
     args = parser.parse_args()
 
     examples = json.loads(args.examples) if args.examples else None
     indices = json.loads(args.indices) if args.indices else None
+    texts = json.loads(args.texts) if args.texts else None
 
-    modify_train_data(args.action, args.intent, examples, indices, args.reason)
+    modify_train_data(args.action, args.intent, examples, indices, texts, args.reason)

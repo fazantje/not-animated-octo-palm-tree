@@ -3,8 +3,12 @@
 import argparse
 import json
 import shutil
+import sys
 from datetime import datetime
 from pathlib import Path
+
+# Ensure utils is importable when run from project root
+sys.path.insert(0, str(Path(__file__).parent))
 
 import numpy as np
 import pandas as pd
@@ -53,7 +57,6 @@ def train_and_evaluate(split: str, run_name: str):
         max_iter=model_config["max_iter"],
         C=model_config["C"],
         class_weight=model_config["class_weight"],
-        multi_class=model_config["multi_class"],
     )
     model.fit(train_embeddings, train_labels)
 
@@ -114,8 +117,13 @@ def train_and_evaluate(split: str, run_name: str):
     # Copy to history
     history_dir = get_path(config, "results_dir") / "history"
     history_dir.mkdir(parents=True, exist_ok=True)
-    existing_runs = sorted(history_dir.iterdir()) if history_dir.exists() else []
-    run_num = len(existing_runs) + 1
+    import re as _re
+    existing_nums = [
+        int(m.group(1))
+        for d in history_dir.iterdir()
+        if d.is_dir() and (m := _re.match(r"run_(\d+)_", d.name))
+    ]
+    run_num = max(existing_nums, default=0) + 1
     run_dir = history_dir / f"run_{run_num:03d}_{run_name}"
     shutil.copytree(results_dir, run_dir)
 
