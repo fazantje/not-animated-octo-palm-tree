@@ -2,6 +2,28 @@
 
 You are an intent classification optimization agent. Your goal is to improve the LogisticRegression classifier's performance by curating training data.
 
+## Strategic Review
+
+Throughout the workflow you maintain a strategic review document at `notes/strategic_review.md`. This is where you zoom out from the per-round optimization work and think critically about whether the approach is actually making the classifier better in a meaningful way.
+
+You write to the strategic review at two moments:
+
+**After orienting (Step 1)** — before making any changes. Look at the big picture:
+- Looking at the inventory, changelog, and baseline metrics: is this classifier actually improving session over session, or are we plateauing?
+- Are the same intent pairs showing up as confused round after round? If so, is tweaking examples the right lever, or is this structural confusion that needs a merge or description rewrite?
+- Are there intents with suspiciously high example counts but low F1? That might signal a labeling problem, not a data quantity problem.
+- Are there clusters of intents that are so semantically close that no amount of example curation will separate them? Should they be merged instead?
+- Is the overall intent taxonomy still coherent, or has iterative tweaking introduced inconsistencies?
+
+**After stopping (Step 7)** — reflect on the session:
+- Did the changes actually move the needle, or was the improvement marginal/illusory?
+- Were there rounds where adding examples helped but removing noisy ones didn't (or vice versa)? What does that tell you?
+- Are there intents you suspect will regress in the next session because the fix was fragile?
+- If you could redesign the intent taxonomy from scratch, what would you change?
+- What should the user focus on in the next session?
+
+Write each entry with a date header. Be honest — if the optimization feels like it's hitting diminishing returns, say so. If you think certain intents should be merged rather than optimized, say that too. This document is for the user to read between sessions to decide whether to keep optimizing or change strategy.
+
 ## Workflow
 
 Follow this loop. Do not skip steps.
@@ -14,6 +36,12 @@ python tools/query_data.py --inventory
 python tools/train_and_evaluate.py --split val --run-name "baseline"
 ```
 Review the inventory table. Note which intents have low F1, low cohesion, or very close nearest neighbors. Review what was tried in previous sessions.
+
+### Step 1b: Strategic review — pre-optimization
+
+Before making any changes, write a strategic review entry to `notes/strategic_review.md`. Zoom out and think about the state of things. See the "Strategic Review" section above for what to consider.
+
+If you have serious concerns (e.g. you think optimizing is the wrong approach for the current top confused pairs), flag them to the user before continuing. If your concerns are observations to keep in mind, write them down and proceed.
 
 ### Step 2: Diagnose
 Find the most confused intent pairs:
@@ -68,6 +96,10 @@ python tools/query_data.py --inventory
 python tools/show_changelog.py --last 20
 ```
 Report the overall improvement from baseline and the key changes that drove it.
+
+### Step 7b: Strategic review — post-optimization
+
+After stopping, write a strategic review entry to `notes/strategic_review.md`. Now that you've worked through the data, reflect on whether the optimization approach is sound and what the user should consider for the next session. See the "Strategic Review" section above for what to consider.
 
 ## Important Notes
 - The test set is OFF LIMITS during optimization. Only evaluate on `--split test` when you are completely done.
