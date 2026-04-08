@@ -9,6 +9,7 @@ paths:
   embeddings_cache: "data/embeddings_cache.parquet"
   results_dir: "results"
   changelog: "notes/changelog.md"
+  strategic_review: "notes/strategic_review.md"
 
 # OpenAI Embedding Configuration
 embeddings:
@@ -22,7 +23,6 @@ model:
   max_iter: 1000
   C: 1.0
   class_weight: "balanced"
-  multi_class: "multinomial"
 
 # K-Fold Configuration
 kfold:

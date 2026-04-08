@@ -2,7 +2,12 @@
 
 import argparse
 import json
+import sys
 from collections import Counter
+from pathlib import Path
+
+# Ensure utils is importable when run from project root
+sys.path.insert(0, str(Path(__file__).parent))
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
@@ -52,7 +57,6 @@ def kfold_confusion(k: int, top_n: int):
             max_iter=model_config["max_iter"],
             C=model_config["C"],
             class_weight=model_config["class_weight"],
-            multi_class=model_config["multi_class"],
         )
         model.fit(X_train, y_train)
         predictions = model.predict(X_val)

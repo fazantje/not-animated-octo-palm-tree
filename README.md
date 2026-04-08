@@ -6,8 +6,9 @@ An AI-agent-assisted optimization toolkit for LogisticRegression intent classifi
 
 ```bash
 pip install -r requirements.txt
-export OPENAI_API_KEY="your-key-here"
 ```
+
+> **Note on authentication**: This project uses Azure AD (`az login`) to retrieve OpenAI credentials from a corporate keyvault. The authentication logic lives in `tools/utils.py` — see the `compute_embeddings` function. <!-- TODO: Update this section once the Azure auth code is added to utils.py -->
 
 ## Data Structure
 
@@ -57,7 +58,8 @@ python tools/compute_embedding.py --text "test sentence" --compare-intent X
 
 # Modify training data
 python tools/modify_train_data.py --action add --intent X --examples '["new example"]' --reason "why"
-python tools/modify_train_data.py --action remove --intent X --indices '[3,7]' --reason "why"
+python tools/modify_train_data.py --action remove --intent X --texts '["exact text to remove"]' --reason "why"
+python tools/modify_train_data.py --action remove --intent X --indices '[3,7]' --reason "why"  # fragile, prefer --texts
 
 # View changelog
 python tools/show_changelog.py --last 5

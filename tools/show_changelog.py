@@ -2,6 +2,11 @@
 
 import argparse
 import re
+import sys
+from pathlib import Path
+
+# Ensure utils is importable when run from project root
+sys.path.insert(0, str(Path(__file__).parent))
 
 from utils import load_config, get_path
 
