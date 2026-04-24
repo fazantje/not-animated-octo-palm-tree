@@ -1,4 +1,9 @@
-"""Analyze misclassifications between two confused intents."""
+"""Analyze misclassifications between two confused intents.
+
+Reads k-fold out-of-fold predictions (produced by kfold_confusion.py). The
+restructure workflow never touches val/test, so k-fold OOF is the source of
+truth for per-example errors.
+"""
 
 import argparse
 import sys
@@ -16,10 +21,10 @@ from utils import load_config, get_path, load_intent_description
 def analyze_errors(intent_a: str, intent_b: str):
     config = load_config()
 
-    # Load misclassifications
-    misc_path = get_path(config, "results_dir") / "current" / "misclassifications.csv"
+    # Load k-fold OOF misclassifications
+    misc_path = get_path(config, "results_dir") / "current" / "kfold_misclassifications.csv"
     if not misc_path.exists():
-        print("No misclassifications file found. Run train_and_evaluate.py first.")
+        print("No k-fold misclassifications file found. Run kfold_confusion.py first.")
         return
 
     misc_df = pd.read_csv(misc_path)

@@ -8,6 +8,10 @@ venv/
 # Data (large files - track with git-lfs or exclude)
 data/embeddings_cache.parquet
 
+# Sensitive SME intent-merge history (contains corp taxonomy info)
+# The template version (intent_merge_history.template.md) IS tracked.
+notes/intent_merge_history.md
+
 # Model artifacts
 results/current/model.pkl
 results/history/

@@ -169,3 +169,49 @@ def append_changelog(config: dict, entry: str):
     changelog_path = get_path(config, "changelog")
     with open(changelog_path, "a") as f:
         f.write(entry + "\n\n")
+
+
+def git_commit_restructure(message: str, paths: list[str]) -> bool:
+    """Stage the given paths and commit with a 'restructure:' prefix.
+
+    Returns True if a commit was created, False otherwise (not in a git repo,
+    no changes staged, or git unavailable). Prints a warning on failure but
+    does not raise — auto-commit is a convenience, not a hard requirement.
+    """
+    import subprocess
+
+    try:
+        # Silently skip if not in a git repo
+        check = subprocess.run(
+            ["git", "-C", str(PROJECT_ROOT), "rev-parse", "--git-dir"],
+            capture_output=True, text=True,
+        )
+        if check.returncode != 0:
+            return False
+
+        add = subprocess.run(
+            ["git", "-C", str(PROJECT_ROOT), "add", "--"] + paths,
+            capture_output=True, text=True,
+        )
+        if add.returncode != 0:
+            print(f"  [git] stage failed: {add.stderr.strip()}")
+            return False
+
+        # Nothing to commit?
+        diff = subprocess.run(
+            ["git", "-C", str(PROJECT_ROOT), "diff", "--staged", "--quiet"],
+            capture_output=True, text=True,
+        )
+        if diff.returncode == 0:
+            return False
+
+        commit = subprocess.run(
+            ["git", "-C", str(PROJECT_ROOT), "commit", "-m", f"restructure: {message}"],
+            capture_output=True, text=True,
+        )
+        if commit.returncode != 0:
+            print(f"  [git] commit failed: {commit.stderr.strip()}")
+            return False
+        return True
+    except FileNotFoundError:
+        return False
