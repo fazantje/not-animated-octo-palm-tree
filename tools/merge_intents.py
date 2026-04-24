@@ -17,11 +17,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 import pandas as pd
 
 from utils import (
-    load_config, get_path, append_changelog, git_commit_restructure,
+    load_config, get_path, append_changelog, git_commit_restructure, get_skill,
 )
 
 
-def merge_intents(source: str, target: str, reason: str):
+def merge_intents(source: str, target: str, reason: str, confirm_cross_skill: bool = False):
     config = load_config()
     train_dir = get_path(config, "train_dir")
 
@@ -50,6 +50,18 @@ def merge_intents(source: str, target: str, reason: str):
     if (src_dir / "description.md").exists():
         print(f"GUARDRAIL: source intent '{source}' has description.md — it is SME-final and cannot be merged away.")
         print("  If you want to move its examples out, use move_examples.py instead (keeps the intent).")
+        return
+
+    # Soft guardrail: cross-skill merges require explicit confirmation
+    src_skill = get_skill(source)
+    tgt_skill = get_skill(target)
+    if src_skill and tgt_skill and src_skill != tgt_skill and not confirm_cross_skill:
+        print("CROSS-SKILL MERGE WARNING:")
+        print(f"  Source '{source}' is in skill '{src_skill}'.")
+        print(f"  Target '{target}' is in skill '{tgt_skill}'.")
+        print("  These belong to different skills, which is unusual. Re-run with")
+        print("  --confirm-cross-skill if the merge is intentional, or surface the")
+        print("  situation to the human first if you're unsure.")
         return
 
     src_df = pd.read_csv(src_csv)
@@ -94,5 +106,7 @@ if __name__ == "__main__":
     parser.add_argument("--target", required=True, help="Target intent (receives source's examples)")
     parser.add_argument("--reason", type=str, default="(no reason given)",
                         help="Reason for the merge")
+    parser.add_argument("--confirm-cross-skill", action="store_true",
+                        help="Explicitly confirm a merge whose source and target skill prefixes differ")
     args = parser.parse_args()
-    merge_intents(args.source, args.target, args.reason)
+    merge_intents(args.source, args.target, args.reason, args.confirm_cross_skill)

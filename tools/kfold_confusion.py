@@ -20,7 +20,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 from tabulate import tabulate
 
-from utils import load_config, get_path, load_training_data, compute_embeddings
+from utils import load_config, get_path, load_training_data, compute_embeddings, get_skill
 
 
 def kfold_confusion(k: int, top_n: int):
@@ -114,11 +114,22 @@ def kfold_confusion(k: int, top_n: int):
     print(f"TOP {top_n} CONFUSED INTENT PAIRS ({k}-fold CV)")
     print(f"{'='*60}")
 
-    table = [
-        [pair[0], pair[1], count]
-        for pair, count in top_pairs
-    ]
-    print(tabulate(table, headers=["Intent A", "Intent B", "Confusions"], tablefmt="simple"))
+    table = []
+    same_skill_errors = 0
+    cross_skill_errors = 0
+    for pair, count in top_pairs:
+        skill_a = get_skill(pair[0]) or "?"
+        skill_b = get_skill(pair[1]) or "?"
+        if skill_a == skill_b:
+            skills_col = f"{skill_a} (same)"
+            same_skill_errors += count
+        else:
+            skills_col = f"{skill_a} / {skill_b}"
+            cross_skill_errors += count
+        table.append([pair[0], pair[1], count, skills_col])
+    print(tabulate(table, headers=["Intent A", "Intent B", "Confusions", "Skills"], tablefmt="simple"))
+    if top_pairs:
+        print(f"\n  (Top {top_n} breakdown: {same_skill_errors} same-skill, {cross_skill_errors} cross-skill)")
 
     print(f"\nOverall k-fold accuracy: {overall_accuracy:.4f} ({total_examples - total_errors}/{total_examples} correct)")
     print(f"Total misclassifications across folds: {total_errors}")

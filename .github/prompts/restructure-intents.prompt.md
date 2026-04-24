@@ -58,6 +58,24 @@ represent the SME's final taxonomy decisions and are **protected**:
   `description.md` files. If a description seems misaligned with its examples,
   flag in `restructure_log.md` and continue.
 
+## Skill prefixes
+
+Intent names begin with a 2-letter skill prefix (case-insensitive). The full
+mapping lives in `config/skill_prefixes.json`; use `utils.get_skill(name)` if
+you need it programmatically.
+
+- Within-skill structural changes (e.g. merging two non-described intents
+  that share a prefix) are routine.
+- **Cross-skill merges** require the `--confirm-cross-skill` flag on
+  `merge_intents.py`. The tool warns and aborts otherwise. If you believe a
+  cross-skill merge is correct, surface it in chat before re-running with
+  the flag — it's unusual and worth a human sanity check.
+- When interpreting diagnostics, an example whose nearest-neighbor intent
+  lives in a *different skill* is a stronger mislabel signal than one whose
+  neighbor shares the skill.
+- `kfold_confusion.py` annotates each confused pair with the skills involved
+  (same vs cross) so you can read at a glance.
+
 ## SME merge history
 
 Read `notes/intent_merge_history.md` first. It lists:
@@ -121,7 +139,59 @@ Then run k-fold on the now-aligned corpus:
 ```
 python tools/kfold_confusion.py --top-n 10
 ```
-This is your baseline for the session.
+This is your *pre-cleanup* baseline. Step 1.5 may change it before you start
+the structural loop.
+
+### Step 1.5: Phase 0.5 — Noise sweep
+
+Legacy CLU training data sometimes contains rows that are verbose (greetings
++ context + closing) or that carry two intents in one breath. These
+contaminate both the classifier and the k-fold signal. Run this after SME
+alignment and before settling on a baseline you'll iterate against.
+
+```
+python tools/find_noisy.py
+```
+
+Writes `results/current/noisy_candidates.csv` with columns:
+`text, intent, skill, word_count, length_zscore, top2_margin, top2_intent, flag_reason`.
+
+Flag semantics:
+- `long`: word count exceeds `max(intent_median + 2σ, 25)`.
+- `multi_intent_suspect`: top-2 centroid-similarity margin `< 0.05` — the
+  embedding sits close to both own intent and another.
+
+For each flagged row, decide:
+
+- **`multi_intent_suspect`**: append the row to `notes/noisy_review.md`
+  (text, intent, top2_intent, short note), then drop via
+  `modify_train_data --action remove`. Our 2-layer architecture handles
+  multi-intent at inference in the disambiguation layer, not in the LR.
+  Mislabeled-as-single-intent rows in training only distort layer-1 —
+  dropping is correct.
+- **`long` only**: read the text. If it has a clear core sentence wrapped in
+  scaffolding (greeting like "Beste Anna", contextual preamble, trailing
+  closing), you may trim: `modify_train_data --action remove` the original,
+  then `--action add` the shortened version. Use your Dutch judgment. If
+  you're not confident a clean trim preserves intent, drop instead. **Err
+  toward drop.**
+
+Batch per intent: one `remove --texts '[...]'` call per intent containing
+all rows you're removing, and one `add` call per intent for replacements.
+Keeps the changelog tidy.
+
+If an intent would lose >30% of its examples or hit the 10-example floor,
+`modify_train_data` refuses. Stop the sweep on that intent and note it in
+`restructure_log.md` as needing human-led re-seeding before further work.
+
+Then re-run k-fold:
+
+```
+python tools/kfold_confusion.py --top-n 10
+```
+
+**This cleaned-corpus k-fold — not the pre-sweep one — is the baseline you
+compare against in Step 5.**
 
 ### Step 2: Diagnose
 
@@ -240,9 +310,10 @@ Stop if any of:
 
 **Diagnostic (read-only)**:
 - `tools/query_data.py` — inventory, per-intent examples, description view
-- `tools/kfold_confusion.py` — k-fold CV, confused pairs + OOF misclassifications
+- `tools/kfold_confusion.py` — k-fold CV, confused pairs (annotated with same-skill vs cross-skill) + OOF misclassifications
 - `tools/analyze_errors.py` — deep dive into confusion between two intents (uses k-fold OOF)
 - `tools/find_outliers.py` — examples far from their own intent's centroid
+- `tools/find_noisy.py` — long/verbose rows and multi-intent suspects (used in Phase 0.5)
 - `tools/show_changelog.py` — read recent changelog entries
 
 **Action**:

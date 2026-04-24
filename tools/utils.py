@@ -1,5 +1,6 @@
 """Shared utilities for intent optimizer tools."""
 
+import json
 import yaml
 import pandas as pd
 import numpy as np
@@ -11,6 +12,9 @@ from typing import Optional
 PROJECT_ROOT = Path(__file__).parent.parent
 CONFIG_PATH = PROJECT_ROOT / "config.yaml"
 MODEL_PATH = PROJECT_ROOT / "results" / "current" / "model.pkl"
+SKILL_PREFIXES_PATH = PROJECT_ROOT / "config" / "skill_prefixes.json"
+
+_skill_prefix_cache: Optional[dict] = None
 
 
 def load_config() -> dict:
@@ -215,3 +219,49 @@ def git_commit_restructure(message: str, paths: list[str]) -> bool:
         return True
     except FileNotFoundError:
         return False
+
+
+def load_skill_prefixes() -> dict:
+    """Load the 2-letter-prefix → skill-name mapping from config/skill_prefixes.json."""
+    global _skill_prefix_cache
+    if _skill_prefix_cache is None:
+        if SKILL_PREFIXES_PATH.exists():
+            with open(SKILL_PREFIXES_PATH) as f:
+                _skill_prefix_cache = json.load(f)
+        else:
+            _skill_prefix_cache = {}
+    return _skill_prefix_cache
+
+
+def get_skill(intent_name: str) -> Optional[str]:
+    """Resolve the skill name (e.g. 'Beleggen') for an intent via its 2-letter prefix.
+
+    Lookup is case-insensitive on the first two characters. Returns None if the
+    intent has no recognized prefix.
+    """
+    if not intent_name or len(intent_name) < 2:
+        return None
+    return load_skill_prefixes().get(intent_name[:2].upper())
+
+
+def compute_intent_centroids(embeddings: np.ndarray, intent_labels,
+                             intent_names: list[str]) -> np.ndarray:
+    """Centroid matrix (len(intent_names), D) aligned to intent_names order.
+
+    intent_labels must be array-like aligned to embeddings. Intents with no
+    examples get a zero row.
+    """
+    intent_labels = np.asarray(intent_labels)
+    centroids = np.zeros((len(intent_names), embeddings.shape[1]), dtype=embeddings.dtype)
+    for i, name in enumerate(intent_names):
+        mask = (intent_labels == name)
+        if mask.sum() > 0:
+            centroids[i] = embeddings[mask].mean(axis=0)
+    return centroids
+
+
+def cosine_similarity_matrix(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Row-wise cosine similarity. a: (N, D), b: (M, D). Returns (N, M)."""
+    a_norm = a / (np.linalg.norm(a, axis=1, keepdims=True) + 1e-10)
+    b_norm = b / (np.linalg.norm(b, axis=1, keepdims=True) + 1e-10)
+    return a_norm @ b_norm.T
